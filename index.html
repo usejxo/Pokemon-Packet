@@ -77,9 +77,9 @@
     button {
       padding: 8px 12px;
       margin: 8px;
-      border: none;
-      background: #007bff;
-      color: white;
+      border: 1px solid black;
+      background: white;
+      color: black;
       border-radius: 6px;
       cursor: pointer;
     }
@@ -92,10 +92,22 @@
       height: 80px;
       margin: 4px;
     }
+    #corner-buttons {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      padding: 8px;
+    }
   </style>
 </head>
 <body>
   <h1>Pokémon Packet</h1>
+  <div id="corner-buttons">
+    <button onclick="showLibrary()">Library</button>
+    <button onclick="alert('Battle coming soon!')">Battle</button>
+  </div>
   <div id="pack-container">
     <div id="pack-top">Poké Pack</div>
     <div id="pack-bottom">Swipe to open</div>
@@ -104,21 +116,12 @@
   <div id="card-container" class="hidden">
     <img id="pokemon-card" src="" alt="Pokemon Card">
     <button id="open-again">Open Another</button>
-    <button id="view-library">View Library</button>
   </div>
 
   <div id="library-container" class="hidden"></div>
 
   <script>
-    const pokemonList = [
-      { name: 'bulbasaur', id: 1 }, { name: 'charmander', id: 4 }, { name: 'squirtle', id: 7 },
-      { name: 'pikachu', id: 25 }, { name: 'eevee', id: 133 }, { name: 'jigglypuff', id: 39 },
-      { name: 'meowth', id: 52 }, { name: 'psyduck', id: 54 }, { name: 'snorlax', id: 143 },
-      { name: 'magikarp', id: 129 }, { name: 'growlithe', id: 58 }, { name: 'abra', id: 63 },
-      { name: 'machop', id: 66 }, { name: 'geodude', id: 74 }, { name: 'gastly', id: 92 },
-      { name: 'dratini', id: 147 }, { name: 'togepi', id: 175 }, { name: 'mudkip', id: 258 },
-      { name: 'torchic', id: 255 }, { name: 'totodile', id: 158 }
-    ];
+    const pokemonList = Array.from({ length: 100 }, (_, i) => ({ name: `pokemon-${i+1}`, id: i + 1 }));
 
     const packTop = document.getElementById('pack-top');
     const packContainer = document.getElementById('pack-container');
@@ -126,7 +129,6 @@
     const libraryContainer = document.getElementById('library-container');
     const cardImg = document.getElementById('pokemon-card');
     const openAgainBtn = document.getElementById('open-again');
-    const viewLibraryBtn = document.getElementById('view-library');
 
     let startX = 0;
     let myLibrary = [];
@@ -178,10 +180,11 @@
       packContainer.classList.remove('hidden');
     });
 
-    viewLibraryBtn.addEventListener('click', () => {
+    function showLibrary() {
       cardContainer.classList.add('hidden');
+      packContainer.classList.add('hidden');
       libraryContainer.classList.remove('hidden');
-    });
+    }
 
     function renderLibrary() {
       libraryContainer.innerHTML = '<h2>Your Pokémon</h2>';
@@ -195,9 +198,6 @@
         img.title = p.name;
         grid.appendChild(img);
       });
-      const battleBtn = document.createElement('button');
-      battleBtn.textContent = 'Battle (Coming Soon)';
-      grid.appendChild(battleBtn);
       libraryContainer.appendChild(grid);
     }
   </script>
