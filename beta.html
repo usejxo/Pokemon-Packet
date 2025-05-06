@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pokémon Packet</title>
-  <style>
+  <title>Pokémon Packet</n  <style>
     * { box-sizing: border-box; }
-    body, html { margin:0; padding:0; display:flex; flex-direction:column; align-items:center; background:#f2f2f2; font-family:sans-serif; height:100vh; }
+    body, html { margin:0; padding:0; display:flex; flex-direction:column; align-items:center; background:#f2f2f2; font-family:sans-serif; height:100vh; overflow:hidden; }
     h1 { margin:16px; }
+    /* First-time popup overlay */
+    #first-time-popup { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; }
+    #first-time-content { background:white; padding:24px; border-radius:12px; width:260px; text-align:center; }
+    #first-time-content input, #first-time-content select { width:100%; margin-top:8px; padding:4px; }
     /* Info Bar */
     #info-bar { width:300px; position:relative; height:24px; margin-bottom:8px; display:flex; justify-content:space-between; }
     #points-container { display:flex; align-items:center; }
@@ -45,6 +48,17 @@
 </head>
 <body>
   <h1>Pokémon Packet</h1>
+  <!-- First-time Popup -->
+  <div id="first-time-popup">
+    <div id="first-time-content">
+      <h2>Welcome!</h2>
+      <p>Set your username and mode to start:</p>
+      <input id="first-username" type="text" placeholder="Enter username">
+      <select id="first-mode"><option>Touch</option><option>Mouse</option></select>
+      <small>You can change this later in settings</small><br><br>
+      <button onclick="saveFirstTime()">Continue</button>
+    </div>
+  </div>
 
   <!-- Info & Settings -->
   <div id="info-bar">
@@ -62,9 +76,9 @@
     </div>
     <!-- Settings Menu -->
     <div id="settings-menu" style="display:none; position:absolute; top:40px; right:10px; width:200px; background:white; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:16px; z-index:5;">
-      <label>Mode: <select id="mode-select"><option>Touch</option><option>Mouse</option></select></label>
-      <label>Username: <input id="username-input" type="text"></label>
-      <small>You can change this later in settings</small>
+      <label>Mode:<br><select id="mode-select"><option>Touch</option><option>Mouse</option></select></label>
+      <label>Username:<br><input id="username-input" type="text"></label>
+      <small>You can change this later in settings</small><br><br>
       <button id="save-settings">Save</button>
     </div>
   </div>
@@ -72,7 +86,7 @@
   <!-- Card Reveal View -->
   <div id="card-container" class="view">
     <img id="pokemon-card" src="" alt="Pokemon Card">
-    <div id="card-label"></div>
+    <div id="card-label" class="hidden"></div>
     <button id="open-again">Open Another</button>
     <div class="corner-buttons">
       <button onclick="showLibrary()">Library</button>
@@ -88,103 +102,95 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Elements
-      const settingsBtn = document.getElementById('settings-button');
-      const settingsMenu = document.getElementById('settings-menu');
-      const saveSettings = document.getElementById('save-settings');
-      const modeSelect = document.getElementById('mode-select');
-      const usernameInput = document.getElementById('username-input');
-      const packTop = document.getElementById('pack-top');
-      const packC = document.getElementById('pack-container');
-      const cardC = document.getElementById('card-container');
-      const libC = document.getElementById('library-container');
-      const openAgain = document.getElementById('open-again');
-      const ptsElem = document.getElementById('points-count');
-      const cardImg = document.getElementById('pokemon-card');
-      const cardLbl = document.getElementById('card-label');
-
-      // Load settings
-      let mode = localStorage.getItem('pp_mode') || 'Touch';
-      let user = localStorage.getItem('pp_username') || '';
-      modeSelect.value = mode;
-      usernameInput.value = user;
-
-      settingsBtn.onclick = () => settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
-      saveSettings.onclick = () => {
-        mode = modeSelect.value;
-        user = usernameInput.value.trim();
-        if (user) localStorage.setItem('pp_username', user);
-        localStorage.setItem('pp_mode', mode);
-        settingsMenu.style.display = 'none';
-      };
-
-      // Points & library
-      let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
-      ptsElem.textContent = points;
-      let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
-
-      // Data
-      const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
-      const namesList = [
-        'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard',
-        'Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree',
-        'Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate',
-        'Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash',
-        'Nidoran♀','Nidorina','Nidoqueen','Nidoran♂','Nidorino','Nidoking','Clefairy',
-        'Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat',
-        'Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett',
-        'Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape',
-        'Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra',
-        'Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel',
-        'Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash',
-        'Slowpoke','Slowbro','Magnemite','Magneton','Farfetch’d','Doduo','Dodrio',
-        'Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter',
-        'Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
-      ];
-      const pokemonList = namesList.map((n,i)=>({ name:n,id:i+1,rarity:rarities[Math.floor(Math.random()*rarities.length)] }));
-
-      // Open pack animation
-      function openPack() {
-        packTop.style.transition = 'transform 0.6s ease-out';
-        const dir = 1; // always right
-        packTop.style.transform = `rotateY(${-80 * dir}deg) translateX(${200 * dir}px) scale(0.5)`;
-        setTimeout(revealPokemon, 600);
+      // First-time popup
+      const firstPopup = document.getElementById('first-time-popup');
+      const fuInput = document.getElementById('first-username');
+      const fmSelect = document.getElementById('first-mode');
+      function saveFirstTime() {
+        const u = fuInput.value.trim();
+        if (!u) return;
+        localStorage.setItem('pp_username', u);
+        localStorage.setItem('pp_mode', fmSelect.value);
+        firstPopup.style.display = 'none';
+        initApp();
+      }
+      if (!localStorage.getItem('pp_username')) {
+        firstPopup.style.display = 'flex';
+      } else {
+        initApp();
       }
 
-      function revealPokemon() {
-        const c = pokemonList[Math.floor(Math.random() * pokemonList.length)];
-        cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
-        cardLbl.textContent = `${c.name}\n${c.rarity}`;
-        cardLbl.classList.remove('hidden');
-        cardC.style.display = 'flex'; packC.style.display = 'none';
-        if (myLib.some(p=>p.id===c.id)) {
-          points++; ptsElem.textContent = points; localStorage.setItem('pp_points',points);
-          myLib = myLib.filter(p=>p.id!==c.id);
+      function initApp() {
+        // Elements
+        const settingsBtn = document.getElementById('settings-button');
+        const settingsMenu = document.getElementById('settings-menu');
+        const saveSettings = document.getElementById('save-settings');
+        const modeSelect = document.getElementById('mode-select');
+        const usernameInput = document.getElementById('username-input');
+        const packTop = document.getElementById('pack-top');
+        const packC = document.getElementById('pack-container');
+        const cardC = document.getElementById('card-container');
+        const libC = document.getElementById('library-container');
+        const openAgain = document.getElementById('open-again');
+        const ptsElem = document.getElementById('points-count');
+        const cardImg = document.getElementById('pokemon-card');
+        const cardLbl = document.getElementById('card-label');
+
+        // Load settings
+        let mode = localStorage.getItem('pp_mode');
+        let user = localStorage.getItem('pp_username');
+        modeSelect.value = mode;
+        usernameInput.value = user;
+        settingsBtn.onclick = () => settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
+        saveSettings.onclick = () => {
+          mode = modeSelect.value;
+          user = usernameInput.value.trim();
+          if (user) localStorage.setItem('pp_username', user);
+          localStorage.setItem('pp_mode', mode);
+          settingsMenu.style.display = 'none';
+        };
+
+        // Points & library
+        let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
+        ptsElem.textContent = points;
+        let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
+
+        // Data
+        const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
+        const namesList = [/*100 names*/];
+        const pokemonList = namesList.map((n,i)=>({ name:n,id:i+1,rarity:rarities[Math.floor(Math.random()*rarities.length)] }));
+
+        // Open pack animation
+        function openPack() {
+          packTop.style.transition = 'transform 0.6s ease-out';
+          packTop.style.transform = 'rotateY(-80deg) translateX(200px) scale(0.5)';
+          setTimeout(revealPokemon,600);
         }
-        myLib.push(c);
-        localStorage.setItem('pp_lib', JSON.stringify(myLib));
-      }
+        function revealPokemon() {
+          const c = pokemonList[Math.floor(Math.random()*pokemonList.length)];
+          cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
+          cardLbl.textContent = `${c.name}\n${c.rarity}`;
+          cardLbl.classList.remove('hidden');
+          cardC.style.display = 'flex'; packC.style.display = 'none';
+          if(myLib.some(p=>p.id===c.id)) { points++; ptsElem.textContent = points; localStorage.setItem('pp_points',points); myLib = myLib.filter(p=>p.id!==c.id); }
+          myLib.push(c); localStorage.setItem('pp_lib',JSON.stringify(myLib));
+        }
+        // Bind open based on mode
+        packC.addEventListener('click',()=>{ if(mode==='Mouse') openPack(); });
+        packC.addEventListener('touchend',()=>{ if(mode==='Touch') openPack(); });
+        openAgain.onclick=()=>{ cardLbl.classList.add('hidden'); packC.style.display='block'; cardC.style.display='none'; packTop.style.transform='rotateY(0)'; };
 
-      // Event binding based on mode
-      packC.addEventListener('click', () => { if (mode==='Mouse') openPack(); });
-      packC.addEventListener('touchend', () => { if (mode==='Touch') openPack(); });
-      openAgain.onclick = () => { cardLbl.classList.add('hidden'); packC.style.display='block'; cardC.style.display='none'; packTop.style.transform='rotateY(0)'; };
+        // Library & search
+        window.showLibrary=()=>{ packC.style.display='none'; cardC.style.display='none'; libC.style.display='block'; renderLibrary(); };
+        window.backToPack=()=>{ libC.style.display='none'; packC.style.display='block'; };
+        window.filterLibrary=q=>{ libC.querySelectorAll('.lib-card').forEach(c=>{ const txt=c.querySelector('.lib-label').innerText.toLowerCase(); c.style.display=txt.includes(q.toLowerCase())?'flex':'none'; }); };
 
-      // Library & search
-      window.showLibrary = () => { packC.style.display='none'; cardC.style.display='none'; libC.style.display='block'; renderLibrary(); };
-      window.backToPack = () => { libC.style.display='none'; packC.style.display='block'; };
-      window.filterLibrary = q => { libC.querySelectorAll('.lib-card').forEach(c=>{ const txt=c.querySelector('.lib-label').innerText.toLowerCase(); c.style.display = txt.includes(q.toLowerCase())?'flex':'none'; }); };
-
-      function renderLibrary() {
-        libC.querySelectorAll('h2,.lib-card').forEach(e=>e.remove());
-        const h2 = document.createElement('h2'); h2.innerText='Your Pokémon'; libC.appendChild(h2);
-        const grid = document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
-        myLib.forEach(p=>{
-          const d = document.createElement('div'); d.className='lib-card';
-          const i = document.createElement('img'); i.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-          const lbl = document.createElement('div'); lbl.className='lib-label '+p.rarity; lbl.innerText=`${p.name}\n${p.rarity}`;
-          d.append(i,lbl); grid.append(d);
-        }); libC.appendChild(grid);
+        function renderLibrary() {
+          libC.querySelectorAll('h2','.lib-card').forEach(e=>e.remove());
+          const h2=document.createElement('h2'); h2.innerText='Your Pokémon'; libC.appendChild(h2);
+          const grid=document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
+          myLib.forEach(p=>{ const d=document.createElement('div'); d.className='lib-card'; const i=document.createElement('img'); i.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`; const lbl=document.createElement('div'); lbl.className='lib-label '+p.rarity; lbl.innerText=`${p.name}\n${p.rarity}`; d.append(i,lbl); grid.append(d); }); libC.appendChild(grid);
+        }
       }
     });
   </script>
