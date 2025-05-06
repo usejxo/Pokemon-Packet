@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pokemon Packet</title>
+  <title>Pokémon Packet</title>
   <style>
     * { box-sizing: border-box; }
     body, html {
@@ -12,20 +12,39 @@
       background: #f2f2f2; font-family: sans-serif; height: 100vh;
     }
     h1 { margin: 16px; }
-    #username-display { font-size: 14px; margin-bottom: 8px; }
+    #username-container {
+      margin-bottom: 8px;
+    }
+    #username-container input {
+      padding: 4px; font-size: 14px;
+      border: 1px solid #ccc; border-radius: 4px;
+    }
+    #info-bar {
+      width: 300px; position: relative; height: 24px;
+    }
+    #points-container {
+      position: absolute; top: 0; right: 0;
+      display: flex; align-items: center;
+    }
+    #points-container img {
+      width: 16px; margin-right: 4px;
+    }
+
+    /* Containers */
     #pack-container, #card-container, #library-container {
       width: 300px; height: 400px; position: relative;
       background: white; border-radius: 12px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       overflow: hidden;
     }
-    /* Perspective for 3D tilt */
     #pack-container { perspective: 800px; }
+
+    /* Pack visuals */
     #pack-top {
       position: absolute; top: 0; width: 100%; height: 40%;
-      background: red; color: white; display: flex;
-      justify-content: center; align-items: center;
-      transform-origin: top; transition: transform 0.2s ease-out;
+      background: red; color: white;
+      display: flex; justify-content: center; align-items: center;
+      transform-origin: center center; transition: transform 0.2s ease-out;
       z-index: 2;
     }
     #pack-bottom {
@@ -33,12 +52,19 @@
       background: url('assets/images/pack/bottom.png') center/contain no-repeat;
       background-color: white;
     }
-    #pokemon-card { width: 80%; margin-bottom: 12px; }
-    #points {
-      display: flex; align-items: center; margin-bottom: 8px;
+
+    /* Card view */
+    #pokemon-card { width: 80%; margin: 0 auto; display: block; }
+    #card-label {
+      background: black; color: white;
+      text-align: center; padding: 8px; margin: 8px 0;
+      white-space: pre-line;
     }
-    #points img { width: 16px; margin-right: 4px; }
+
+    /* Hidden flag */
     .hidden { display: none !important; }
+
+    /* Buttons */
     button {
       padding: 8px 12px; margin: 8px;
       border: 1px solid black; background: white; color: black;
@@ -46,17 +72,20 @@
       transition: background 0.2s, color 0.2s;
     }
     button:hover { background: black; color: white; }
+
+    /* Corner controls */
     #corner-buttons {
       position: absolute; bottom: 0; width: 100%;
       display: flex; justify-content: space-between; padding: 8px;
     }
-    #back-button {
-      position: absolute; top: 8px; left: 8px;
-    }
-    /* Expanded library size */
+
+    /* Library */
     #library-container {
       display: none; width: 320px; height: 420px;
-      padding-top: 40px; background: white;
+      padding-top: 40px; background: white; overflow-y: auto;
+    }
+    #back-button {
+      position: absolute; top: 8px; left: 8px;
     }
     #search-bar {
       width: 80%; padding: 4px; margin: 8px;
@@ -68,8 +97,7 @@
     }
     .lib-card img { width: 100%; }
     .lib-label {
-      font-size: 10px; text-align: center;
-      white-space: pre-line;
+      font-size: 10px; text-align: center; white-space: pre-line;
     }
     /* Rarity colors */
     .Common   { color: gray; }
@@ -81,27 +109,34 @@
 </head>
 <body>
   <h1>Pokémon Packet</h1>
-  <div id="username-display"></div>
 
-  <div id="corner-buttons">
-    <button onclick="showLibrary()">Library</button>
-    <button onclick="alert('Battle coming soon!')">Battle</button>
+  <!-- Username input (no alert) -->
+  <div id="username-container">
+    <input id="username-input" type="text" placeholder="Enter your username">
   </div>
 
+  <!-- Points display -->
+  <div id="info-bar">
+    <div id="points-container">
+      <img src="assets/images/points/coin.png" alt="Points">
+      <span id="points-count">0</span>
+    </div>
+  </div>
+
+  <!-- Pack view -->
   <div id="pack-container">
     <div id="pack-top">Poké Pack</div>
     <div id="pack-bottom"></div>
   </div>
 
+  <!-- Card reveal view -->
   <div id="card-container" class="hidden">
     <img id="pokemon-card" src="" alt="Pokemon Card">
-    <div id="points">
-      <img src="assets/images/points/coin.png" alt="Points">
-      <span id="points-count">0</span>
-    </div>
+    <div id="card-label" class="hidden"></div>
     <button id="open-again">Open Another</button>
   </div>
 
+  <!-- Library view -->
   <div id="library-container">
     <button id="back-button" onclick="backToPack()">Back</button>
     <input id="search-bar" type="text" placeholder="Search Pokémon..." oninput="filterLibrary(this.value)">
@@ -109,22 +144,28 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      // Prompt for username once
+      // Username
+      const userInput = document.getElementById('username-input');
       let user = localStorage.getItem('pp_username');
-      if (!user) {
-        user = prompt('Enter your username:');
-        localStorage.setItem('pp_username', user);
+      if (user) {
+        userInput.value = user;
+        userInput.disabled = true;
       }
-      document.getElementById('username-display').innerText = 'User: ' + user;
+      userInput.addEventListener('change', () => {
+        const val = userInput.value.trim();
+        if (val) {
+          localStorage.setItem('pp_username', val);
+          userInput.disabled = true;
+        }
+      });
 
-      // Load points and library
-      let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
+      // Points & library
+      let points = parseInt(localStorage.getItem('pp_points')||'0',10);
       const ptsElem = document.getElementById('points-count');
-      ptsElem.innerText = points;
+      ptsElem.textContent = points;
+      let myLib = JSON.parse(localStorage.getItem('pp_lib')||'[]');
 
-      let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
-
-      // Define Pokémon
+      // Pokémon data
       const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
       const namesList = [
         'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard',
@@ -142,111 +183,109 @@
         'Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter',
         'Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
       ];
-      const pokemonList = namesList.map((n,i) => ({
-        name: n,
-        id: i+1,
-        rarity: rarities[Math.floor(Math.random() * rarities.length)]
+      const pokemonList = namesList.map((n,i)=>({
+        name:n, id:i+1,
+        rarity: rarities[Math.floor(Math.random()*rarities.length)]
       }));
 
       // Element refs
-      const packTop = document.getElementById('pack-top');
-      const packC = document.getElementById('pack-container');
-      const cardC = document.getElementById('card-container');
-      const libC  = document.getElementById('library-container');
-      const cardImg = document.getElementById('pokemon-card');
-      const openAgain = document.getElementById('open-again');
+      const packTop = document.getElementById('pack-top'),
+            packC   = document.getElementById('pack-container'),
+            cardC   = document.getElementById('card-container'),
+            libC    = document.getElementById('library-container'),
+            cardImg = document.getElementById('pokemon-card'),
+            cardLbl = document.getElementById('card-label'),
+            openAgain = document.getElementById('open-again');
 
-      // Swipe logic
-      let startX = 0;
-      function handleStart(x) {
-        startX = x;
+      // Swipe to side tip
+      let startX=0;
+      function handleStart(x){ startX=x; }
+      function handleMove(x){
+        const w=packC.clientWidth, diff=x-startX, pct=Math.max(Math.min(diff/w,1),-1),
+              angle=pct*60;
+        packTop.style.transform = `rotateY(${-angle}deg)`;
       }
-      function handleMove(x) {
-        const w = packC.clientWidth;
-        const diff = x - startX;
-        const pct = Math.min(Math.max(diff / w, 0), 1);
-        const angle = pct * 60;
-        packTop.style.transform = `rotateX(${angle}deg)`;
-      }
-      function handleEnd(x) {
-        const diff = Math.abs(x - startX);
-        if (diff > 80) {
-          packTop.style.transition = 'transform 0.6s ease-out';
-          packTop.style.transform = 'rotateX(80deg) translateY(-200%) scale(0.5)';
-          setTimeout(revealPokemon, 600);
+      function handleEnd(x){
+        const diff=x-startX;
+        if(Math.abs(diff)>80){
+          packTop.style.transition='transform 0.6s ease-out';
+          const dir=diff>0?1:-1;
+          packTop.style.transform = `rotateY(${-80*dir}deg) translateX(${200*dir}px) scale(0.5)`;
+          setTimeout(revealPokemon,600);
         } else {
-          packTop.style.transition = '';
-          packTop.style.transform = 'rotateX(0)';
+          packTop.style.transition='';
+          packTop.style.transform='rotateY(0)';
         }
       }
-      ['touchstart','mousedown'].forEach(evt => packC.addEventListener(evt, e => handleStart(e.touches ? e.touches[0].clientX : e.clientX)));
-      ['touchmove','mousemove'].forEach(evt => packC.addEventListener(evt, e => handleMove(e.touches ? e.touches[0].clientX : e.clientX)));
-      ['touchend','mouseup'].forEach(evt => packC.addEventListener(evt, e => handleEnd(e.changedTouches ? e.changedTouches[0].clientX : e.clientX)));
+      ['touchstart','mousedown'].forEach(e=>packC.addEventListener(e,ev=>handleStart(ev.touches?ev.touches[0].clientX:ev.clientX)));
+      ['touchmove','mousemove'].forEach(e=>packC.addEventListener(e,ev=>handleMove(ev.touches?ev.touches[0].clientX:ev.clientX)));
+      ['touchend','mouseup'].forEach(e=>packC.addEventListener(e,ev=>handleEnd(ev.changedTouches?ev.changedTouches[0].clientX:ev.clientX)));
 
-      function revealPokemon() {
-        const choice = pokemonList[Math.floor(Math.random() * pokemonList.length)];
-        cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${choice.id}.png`;
-        cardImg.alt = choice.name;
-        // Color pack-top by rarity
+      function revealPokemon(){
+        const c=pokemonList[Math.floor(Math.random()*pokemonList.length)];
+        cardImg.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
+        cardImg.alt=c.name;
+        cardLbl.textContent = `${c.name}\n${c.rarity}`;
+        cardLbl.classList.remove('hidden');
+        // color next top
         packTop.style.background = {
-          Legendary: 'orange', Epic: 'purple',
-          Rare: 'blue', Uncommon: 'green', Common: 'gray'
-        }[choice.rarity];
-        // Award points if duplicate
-        if (myLib.some(p => p.id === choice.id)) {
-          points += 10;
-          localStorage.setItem('pp_points', points);
-          ptsElem.innerText = points;
+          Legendary:'orange', Epic:'purple',
+          Rare:'blue', Uncommon:'green', Common:'gray'
+        }[c.rarity];
+        // award points on duplicate
+        if(myLib.some(p=>p.id===c.id)){
+          points+=10;
+          localStorage.setItem('pp_points',points);
+          ptsElem.textContent=points;
         }
-        myLib.push(choice);
-        localStorage.setItem('pp_lib', JSON.stringify(myLib));
+        myLib.push(c);
+        localStorage.setItem('pp_lib',JSON.stringify(myLib));
         packC.classList.add('hidden');
         cardC.classList.remove('hidden');
       }
 
-      openAgain.onclick = () => {
-        packTop.style.transition = '';
-        packTop.style.transform = 'rotateX(0)';
+      openAgain.onclick = ()=>{
+        cardLbl.classList.add('hidden');
+        packTop.style.transition='';
+        packTop.style.transform='rotateY(0)';
         cardC.classList.add('hidden');
         packC.classList.remove('hidden');
       };
 
-      window.showLibrary = () => {
+      window.showLibrary = ()=>{
         packC.classList.add('hidden');
         cardC.classList.add('hidden');
-        libC.style.display = 'block';
+        libC.style.display='block';
         renderLibrary();
       };
-
-      window.backToPack = () => {
-        libC.style.display = 'none';
+      window.backToPack = ()=>{
+        libC.style.display='none';
         packC.classList.remove('hidden');
       };
-
-      window.filterLibrary = q => {
-        document.querySelectorAll('.lib-card').forEach(card => {
-          const txt = card.querySelector('.lib-label').innerText.toLowerCase();
-          card.style.display = txt.includes(q.toLowerCase()) ? 'flex' : 'none';
+      window.filterLibrary = q=>{
+        libC.querySelectorAll('.lib-card').forEach(c=>{
+          const txt=c.querySelector('.lib-label').innerText.toLowerCase();
+          c.style.display = txt.includes(q.toLowerCase())?'flex':'none';
         });
       };
 
-      function renderLibrary() {
-        libC.querySelectorAll('h2, .lib-card').forEach(e => e.remove());
-        const h2 = document.createElement('h2');
-        h2.innerText = 'Your Pokémon';
+      function renderLibrary(){
+        libC.querySelectorAll('h2,.lib-card').forEach(e=>e.remove());
+        const h2=document.createElement('h2');
+        h2.innerText='Your Pokémon';
         libC.appendChild(h2);
-        const grid = document.createElement('div');
-        grid.style.display = 'flex';
-        grid.style.flexWrap = 'wrap';
-        myLib.forEach(p => {
-          const d = document.createElement('div');
-          d.className = 'lib-card';
-          const img = document.createElement('img');
-          img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-          const lbl = document.createElement('div');
-          lbl.className = 'lib-label ' + p.rarity;
-          lbl.innerText = `${p.name}\n${p.rarity}`;
-          d.append(img, lbl);
+        const grid=document.createElement('div');
+        grid.style.display='flex';
+        grid.style.flexWrap='wrap';
+        myLib.forEach(p=>{
+          const d=document.createElement('div');
+          d.className='lib-card';
+          const i=document.createElement('img');
+          i.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+          const lbl=document.createElement('div');
+          lbl.className='lib-label '+p.rarity;
+          lbl.innerText=`${p.name}\n${p.rarity}`;
+          d.append(i,lbl);
           grid.append(d);
         });
         libC.appendChild(grid);
