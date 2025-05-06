@@ -64,10 +64,7 @@
       <h2>Welcome!</h2>
       <p>Set your username and mode to start:</p>
       <input id="first-username" type="text" placeholder="Enter username">
-      <select id="first-mode">
-        <option>Touch</option>
-        <option>Mouse</option>
-      </select>
+      <select id="first-mode"><option>Touch</option><option>Mouse</option></select>
       <small>You can change this later in settings</small><br><br>
       <button onclick="saveFirstTime()">Continue</button>
     </div>
@@ -80,7 +77,7 @@
       <span id="points-count">0</span>
     </div>
     <button id="settings-button">
-      <img src="assets/images/buttonicons/settings.png" alt="Settings">
+      <img id="settings-icon" src="assets/images/buttonicons/settings.png" alt="Settings">
     </button>
   </div>
 
@@ -94,15 +91,8 @@
     </div>
     <!-- Settings Menu -->
     <div id="settings-menu" style="display:none; position:absolute; top:40px; right:10px; width:200px; background:white; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:16px; z-index:5;">
-      <label>Mode:<br>
-        <select id="mode-select">
-          <option>Touch</option>
-          <option>Mouse</option>
-        </select>
-      </label><br>
-      <label>Username:<br>
-        <input id="username-input" type="text">
-      </label><br>
+      <label>Mode:<br><select id="mode-select"><option>Touch</option><option>Mouse</option></select></label><br>
+      <label>Username:<br><input id="username-input" type="text"></label><br>
       <small>You can change this later in settings</small><br><br>
       <button id="save-settings">Save</button>
     </div>
@@ -127,25 +117,23 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // First-time popup
       const firstPopup = document.getElementById('first-time-popup');
       const fuInput    = document.getElementById('first-username');
       const fmSelect   = document.getElementById('first-mode');
-
-      // First-time setup
+      function saveFirstTime() {
+        const u = fuInput.value.trim();
+        if (!u) return;
+        localStorage.setItem('pp_username', u);
+        localStorage.setItem('pp_mode', fmSelect.value);
+        firstPopup.style.display = 'none';
+        initApp();
+      }
       if (!localStorage.getItem('pp_username')) {
         firstPopup.style.display = 'flex';
       } else {
         initApp();
       }
-      window.saveFirstTime = () => {
-        const u = fuInput.value.trim();
-        const m = fmSelect.value;
-        if (!u) return;
-        localStorage.setItem('pp_username', u);
-        localStorage.setItem('pp_mode', m);
-        firstPopup.style.display = 'none';
-        initApp();
-      };
 
       function initApp() {
         // Elements
@@ -162,15 +150,14 @@
         const ptsElem       = document.getElementById('points-count');
         const cardImg       = document.getElementById('pokemon-card');
         const cardLbl       = document.getElementById('card-label');
+        const settingsIcon  = document.getElementById('settings-icon');
 
-        // Load saved settings
+        // Load settings
         let mode = localStorage.getItem('pp_mode');
         let user = localStorage.getItem('pp_username');
         modeSelect.value    = mode;
         usernameInput.value = user;
-        settingsBtn.onclick = () => {
-          settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
-        };
+        settingsBtn.onclick = () => settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
         saveSettings.onclick = () => {
           mode = modeSelect.value;
           user = usernameInput.value.trim();
@@ -178,95 +165,75 @@
           localStorage.setItem('pp_mode', mode);
           settingsMenu.style.display = 'none';
         };
+        // Hover icon swap
+        settingsBtn.onmouseenter = () => settingsIcon.src = 'assets/images/buttonicons/hover/settings.png';
+        settingsBtn.onmouseleave = () => settingsIcon.src = 'assets/images/buttonicons/settings.png';
 
         // Points & library
         let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
         ptsElem.textContent = points;
         let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
 
-        // Pokémon data
-        const rarities  = ['Common','Uncommon','Rare','Epic','Legendary'];
-        const namesList = [ /* 100 names as before */ ];
-        const pokemonList = namesList.map((n,i) => ({
-          name: n, id: i+1,
-          rarity: rarities[Math.floor(Math.random()*rarities.length)]
-        }));
+        // Data (100 names)
+        const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
+        const namesList = [
+          'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard','Squirtle','Wartortle','Blastoise','Caterpie',
+          'Metapod','Butterfree','Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate',
+          'Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash','Nidoran♀','Nidorina',
+          'Nidoqueen','Nidoran♂','Nidorino','Nidoking','Clefairy','Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff',
+          'Zubat','Golbat','Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett',
+          'Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape','Growlithe','Arcanine','Poliwag',
+          'Poliwhirl','Poliwrath','Abra','Kadabra','Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell',
+          'Victreebel','Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash','Slowpoke','Slowbro',
+          'Magnemite','Magneton','Farfetch’d','Doduo','Dodrio','Seel','Dewgong','Grimer','Muk','Shellder',
+          'Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
+        ];
+        const pokemonList = namesList.map((n,i) => ({ name:n, id:i+1, rarity: rarities[Math.floor(Math.random()*rarities.length)] }));
 
-        // Open pack
+        // Open pack animation
         function openPack() {
           packTop.style.transition = 'transform 0.6s ease-out';
           packTop.style.transform   = 'rotateY(-80deg) translateX(200px) scale(0.5)';
           setTimeout(revealPokemon, 600);
         }
-
         function revealPokemon() {
           const c = pokemonList[Math.floor(Math.random()*pokemonList.length)];
+          if (!c || c.id === undefined) return;
           cardImg.src   = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
           cardLbl.textContent = `${c.name}\n${c.rarity}`;
           cardLbl.classList.remove('hidden');
-          cardC.style.display = 'flex';
-          packC.style.display = 'none';
-
+          cardC.style.display = 'flex'; packC.style.display = 'none';
           if (myLib.some(p => p.id === c.id)) {
-            points++;
-            ptsElem.textContent = points;
-            localStorage.setItem('pp_points', points);
+            points++; ptsElem.textContent = points; localStorage.setItem('pp_points', points);
             myLib = myLib.filter(p => p.id !== c.id);
           }
           myLib.push(c);
           localStorage.setItem('pp_lib', JSON.stringify(myLib));
         }
-
         // Bind open based on mode
-        packC.addEventListener('click',   () => { if (mode==='Mouse') openPack(); });
-        packC.addEventListener('touchend',() => { if (mode==='Touch') openPack(); });
-
+        packC.addEventListener('click', () => { if (mode==='Mouse') openPack(); });
+        packC.addEventListener('touchend', () => { if (mode==='Touch') openPack(); });
         openAgain.onclick = () => {
           cardLbl.classList.add('hidden');
-          packC.style.display = 'block';
-          cardC.style.display = 'none';
+          packC.style.display = 'block'; cardC.style.display = 'none';
           packTop.style.transform = 'rotateY(0)';
         };
 
         // Library & search
-        window.showLibrary = () => {
-          packC.style.display = 'none';
-          cardC.style.display = 'none';
-          libC.style.display  = 'block';
-          renderLibrary();
-        };
-        window.backToPack = () => {
-          libC.style.display  = 'none';
-          packC.style.display = 'block';
-        };
-        window.filterLibrary = q => {
-          libC.querySelectorAll('.lib-card').forEach(c => {
-            const txt = c.querySelector('.lib-label').innerText.toLowerCase();
-            c.style.display = txt.includes(q.toLowerCase()) ? 'flex' : 'none';
-          });
-        };
+        window.showLibrary = () => { packC.style.display='none'; cardC.style.display='none'; libC.style.display='block'; renderLibrary(); };
+        window.backToPack = () => { libC.style.display='none'; packC.style.display='block'; };
+        window.filterLibrary = q => { libC.querySelectorAll('.lib-card').forEach(c=>{ const txt=c.querySelector('.lib-label').innerText.toLowerCase(); c.style.display = txt.includes(q.toLowerCase())?'flex':'none'; }); };
 
         function renderLibrary() {
-          libC.querySelectorAll('h2, .lib-card').forEach(e => e.remove());
-          const h2 = document.createElement('h2');
-          h2.innerText = 'Your Pokémon';
-          libC.appendChild(h2);
-
-          const grid = document.createElement('div');
-          grid.style.display = 'flex';
-          grid.style.flexWrap = 'wrap';
+          libC.querySelectorAll('h2, .lib-card').forEach(e=>e.remove());
+          const h2 = document.createElement('h2'); h2.innerText='Your Pokémon'; libC.appendChild(h2);
+          const grid = document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
           myLib.forEach(p => {
-            const d = document.createElement('div');
-            d.className = 'lib-card';
-            const img = document.createElement('img');
-            img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-            const lbl = document.createElement('div');
-            lbl.className = 'lib-label ' + p.rarity;
-            lbl.innerText = `${p.name}\n${p.rarity}`;
-            d.append(img, lbl);
-            grid.append(d);
-          });
-          libC.appendChild(grid);
+            const d = document.createElement('div'); d.className='lib-card';
+            const i = document.createElement('img'); i.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+            const lbl = document.createElement('div'); lbl.className = 'lib-label ' + p.rarity; lbl.innerText = `${p.name}\n${p.rarity}`;
+            d.append(i, lbl); grid.append(d);
+          }); libC.appendChild(grid);
         }
       }
     });
