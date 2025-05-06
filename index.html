@@ -89,12 +89,25 @@
     }
     .lib-card {
       width: 80px;
-      height: 80px;
+      height: 100px;
       margin: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .lib-card img {
+      width: 100%;
+      height: auto;
+    }
+    .lib-label {
+      font-size: 10px;
+      color: black;
+      text-align: center;
+      white-space: pre-line;
     }
     #corner-buttons {
       position: absolute;
-      top: 0;
+      bottom: 0;
       width: 100%;
       display: flex;
       justify-content: space-between;
@@ -121,85 +134,103 @@
   <div id="library-container" class="hidden"></div>
 
   <script>
-    const pokemonList = Array.from({ length: 100 }, (_, i) => ({ name: `pokemon-${i+1}`, id: i + 1 }));
+    document.addEventListener('DOMContentLoaded', () => {
+      const rarities = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
+      const pokemonList = Array.from({ length: 20 }, (_, i) => ({
+        name: `Pokemon ${i + 1}`,
+        id: i + 1,
+        rarity: rarities[Math.floor(Math.random() * rarities.length)]
+      }));
 
-    const packTop = document.getElementById('pack-top');
-    const packContainer = document.getElementById('pack-container');
-    const cardContainer = document.getElementById('card-container');
-    const libraryContainer = document.getElementById('library-container');
-    const cardImg = document.getElementById('pokemon-card');
-    const openAgainBtn = document.getElementById('open-again');
+      const packTop = document.getElementById('pack-top');
+      const packContainer = document.getElementById('pack-container');
+      const cardContainer = document.getElementById('card-container');
+      const libraryContainer = document.getElementById('library-container');
+      const cardImg = document.getElementById('pokemon-card');
+      const openAgainBtn = document.getElementById('open-again');
 
-    let startX = 0;
-    let myLibrary = [];
+      let startX = 0;
+      let myLibrary = [];
 
-    function handleStart(x) {
-      startX = x;
-      packContainer.classList.add('swiping');
-    }
-
-    function handleMove(x) {
-      const diff = Math.max(0, x - startX);
-      packContainer.style.setProperty('--swipe-x', `${diff}px`);
-    }
-
-    function handleEnd(x) {
-      packContainer.classList.remove('swiping');
-      packContainer.style.setProperty('--swipe-x', `0px`);
-      if (Math.abs(x - startX) > 80) {
-        packTop.style.transform = 'translateY(-150%)';
-        setTimeout(() => revealPokemon(), 500);
+      function handleStart(x) {
+        startX = x;
+        packContainer.classList.add('swiping');
       }
-    }
 
-    packContainer.addEventListener('touchstart', e => handleStart(e.touches[0].clientX));
-    packContainer.addEventListener('touchmove', e => handleMove(e.touches[0].clientX));
-    packContainer.addEventListener('touchend', e => handleEnd(e.changedTouches[0].clientX));
-    packContainer.addEventListener('mousedown', e => handleStart(e.clientX));
-    packContainer.addEventListener('mousemove', e => {
-      if (startX !== 0) handleMove(e.clientX);
-    });
-    packContainer.addEventListener('mouseup', e => {
-      handleEnd(e.clientX);
-      startX = 0;
-    });
+      function handleMove(x) {
+        const diff = Math.max(0, x - startX);
+        packContainer.style.setProperty('--swipe-x', `${diff}px`);
+      }
 
-    function revealPokemon() {
-      const choice = pokemonList[Math.floor(Math.random() * pokemonList.length)];
-      cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${choice.id}.png`;
-      cardImg.alt = choice.name;
-      myLibrary.push(choice);
-      renderLibrary();
-      packContainer.classList.add('hidden');
-      cardContainer.classList.remove('hidden');
-    }
+      function handleEnd(x) {
+        packContainer.classList.remove('swiping');
+        packContainer.style.setProperty('--swipe-x', `0px`);
+        if (Math.abs(x - startX) > 80) {
+          packTop.style.transform = 'translateY(-150%)';
+          setTimeout(() => revealPokemon(), 500);
+        }
+      }
 
-    openAgainBtn.addEventListener('click', () => {
-      packTop.style.transform = 'translateY(0%)';
-      cardContainer.classList.add('hidden');
-      packContainer.classList.remove('hidden');
-    });
-
-    function showLibrary() {
-      cardContainer.classList.add('hidden');
-      packContainer.classList.add('hidden');
-      libraryContainer.classList.remove('hidden');
-    }
-
-    function renderLibrary() {
-      libraryContainer.innerHTML = '<h2>Your Pokémon</h2>';
-      const grid = document.createElement('div');
-      grid.style.display = 'flex';
-      grid.style.flexWrap = 'wrap';
-      myLibrary.forEach(p => {
-        const img = document.createElement('img');
-        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-        img.className = 'lib-card';
-        img.title = p.name;
-        grid.appendChild(img);
+      packContainer.addEventListener('touchstart', e => handleStart(e.touches[0].clientX));
+      packContainer.addEventListener('touchmove', e => handleMove(e.touches[0].clientX));
+      packContainer.addEventListener('touchend', e => handleEnd(e.changedTouches[0].clientX));
+      packContainer.addEventListener('mousedown', e => handleStart(e.clientX));
+      packContainer.addEventListener('mousemove', e => {
+        if (startX !== 0) handleMove(e.clientX);
       });
-      libraryContainer.appendChild(grid);
-    }
+      packContainer.addEventListener('mouseup', e => {
+        handleEnd(e.clientX);
+        startX = 0;
+      });
+
+      function revealPokemon() {
+        const choice = pokemonList[Math.floor(Math.random() * pokemonList.length)];
+        cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${choice.id}.png`;
+        cardImg.alt = choice.name;
+        myLibrary.push(choice);
+        renderLibrary();
+        packContainer.classList.add('hidden');
+        cardContainer.classList.remove('hidden');
+      }
+
+      openAgainBtn.addEventListener('click', () => {
+        packTop.style.transform = 'translateY(0%)';
+        cardContainer.classList.add('hidden');
+        packContainer.classList.remove('hidden');
+      });
+
+      function showLibrary() {
+        cardContainer.classList.add('hidden');
+        packContainer.classList.add('hidden');
+        libraryContainer.classList.remove('hidden');
+      }
+
+      function renderLibrary() {
+        libraryContainer.innerHTML = '<h2>Your Pokémon</h2>';
+        const grid = document.createElement('div');
+        grid.style.display = 'flex';
+        grid.style.flexWrap = 'wrap';
+        myLibrary.forEach(p => {
+          const container = document.createElement('div');
+          container.className = 'lib-card';
+
+          const img = document.createElement('img');
+          img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+          img.alt = p.name;
+
+          const label = document.createElement('div');
+          label.className = 'lib-label';
+          label.innerText = `${p.name}\n${p.rarity}`;
+
+          container.appendChild(img);
+          container.appendChild(label);
+          grid.appendChild(container);
+        });
+        libraryContainer.appendChild(grid);
+      }
+
+      window.showLibrary = showLibrary;
+    });
   </script>
 </body>
 </html>
