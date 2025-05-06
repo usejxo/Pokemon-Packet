@@ -8,48 +8,60 @@
     * { box-sizing: border-box; }
     body, html { margin:0; padding:0; display:flex; flex-direction:column; align-items:center; background:#f2f2f2; font-family:sans-serif; height:100vh; }
     h1 { margin:16px; }
-    /* Info bar */
+    /* Info Bar */
     #info-bar { width:300px; position:relative; height:24px; margin-bottom:8px; display:flex; justify-content:space-between; }
     #points-container { display:flex; align-items:center; }
     #points-container img { width:16px; margin-right:4px; }
     #settings-button { background:none; border:none; cursor:pointer; }
     #settings-button img { width:24px; }
-    /* Containers */
+    /* Views */
     .view { width:300px; height:400px; background:white; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.2); position:relative; overflow:hidden; }
     #pack-container { perspective:800px; }
     #pack-top { position:absolute; top:0; width:100%; height:40%; background:red; display:flex; justify-content:center; align-items:center; transition:transform 0.2s ease-out; transform-origin:center center; z-index:2; }
-    #pack-bottom { position:absolute; bottom:0; width:100%; height:60%; background:url('assets/images/pack/bottom.png') center/contain no-repeat; }
+    #pack-bottom { position:absolute; bottom:0; width:100%; height:60%; background:url('assets/images/pack/bottom.png') center/contain no-repeat; background-color:white; }
+    /* Corner Buttons */
+    .corner-buttons { position:absolute; bottom:0; width:100%; display:flex; justify-content:space-between; padding:8px; z-index:3; }
+    /* Card view */
     #card-container { display:none; flex-direction:column; align-items:center; justify-content:center; }
     #pokemon-card { width:80%; margin:0 auto; }
-    #card-label { background:black; color:white; text-align:center; padding:8px; white-space:pre-line; }
-    #library-container { display:none; width:360px; height:480px; background:white; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:40px 16px 16px; overflow-y:auto; }
+    #card-label { background:black; color:white; text-align:center; padding:8px; white-space:pre-line; margin-bottom:8px; }
+    /* Library view */
+    #library-container { display:none; width:360px; height:480px; background:white; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:40px 16px 16px; overflow-y:auto; position:relative; }
     #search-bar { width:calc(100% - 32px); padding:4px; margin-bottom:8px; border:1px solid #ccc; border-radius:4px; }
     #back-button { position:absolute; top:8px; left:8px; }
     .lib-card { width:80px; margin:4px; display:flex; flex-direction:column; align-items:center; }
     .lib-card img { width:100%; }
     .lib-label { font-size:10px; text-align:center; white-space:pre-line; }
-    /* Settings menu */
-    #settings-menu { display:none; position:absolute; top:40px; right:10px; width:200px; background:white; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:16px; z-index:5; }
-    #settings-menu label { display:block; margin-bottom:8px; }
-    #settings-menu select, #settings-menu input { width:100%; margin-bottom:12px; padding:4px; }
-    #settings-menu button { width:100%; }
-    /* Buttons */
-    button { padding:8px 12px; margin:8px; border:1px solid black; background:white; color:black; border-radius:6px; cursor:pointer; transition:background 0.2s,color 0.2s; }
+    /* Rarity colors */
+    .Common { color:gray; }
+    .Uncommon { color:green; }
+    .Rare { color:blue; }
+    .Epic { color:purple; }
+    .Legendary { color:gold; }
+    /* Buttons hover */
+    button { padding:8px 12px; border:1px solid black; background:white; color:black; border-radius:6px; cursor:pointer; transition:background 0.2s,color 0.2s; }
     button:hover { background:black; color:white; }
   </style>
 </head>
 <body>
   <h1>Pokémon Packet</h1>
 
+  <!-- Info & Settings -->
   <div id="info-bar">
-    <div id="points-container"><img src="assets/images/points/coin.png" alt=""> <span id="points-count">0</span></div>
+    <div id="points-container"><img src="assets/images/points/coin.png" alt="Points"> <span id="points-count">0</span></div>
     <button id="settings-button"><img src="assets/images/buttonicons/settings.png" alt="Settings"></button>
   </div>
 
+  <!-- Pack View -->
   <div id="pack-container" class="view">
     <div id="pack-top">Poké Pack</div>
     <div id="pack-bottom"></div>
-    <div id="settings-menu">
+    <div class="corner-buttons">
+      <button onclick="showLibrary()">Library</button>
+      <button onclick="alert('Battle coming soon!')">Battle</button>
+    </div>
+    <!-- Settings Menu -->
+    <div id="settings-menu" style="display:none; position:absolute; top:40px; right:10px; width:200px; background:white; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:16px; z-index:5;">
       <label>Mode: <select id="mode-select"><option>Touch</option><option>Mouse</option></select></label>
       <label>Username: <input id="username-input" type="text"></label>
       <small>You can change this later in settings</small>
@@ -57,12 +69,18 @@
     </div>
   </div>
 
+  <!-- Card Reveal View -->
   <div id="card-container" class="view">
     <img id="pokemon-card" src="" alt="Pokemon Card">
     <div id="card-label"></div>
     <button id="open-again">Open Another</button>
+    <div class="corner-buttons">
+      <button onclick="showLibrary()">Library</button>
+      <button onclick="alert('Battle coming soon!')">Battle</button>
+    </div>
   </div>
 
+  <!-- Library View -->
   <div id="library-container">
     <button id="back-button" onclick="backToPack()">Back</button>
     <input id="search-bar" type="text" placeholder="Search Pokémon..." oninput="filterLibrary(this.value)">
@@ -95,56 +113,78 @@
       saveSettings.onclick = () => {
         mode = modeSelect.value;
         user = usernameInput.value.trim();
-        if(user) { localStorage.setItem('pp_username', user); }
+        if (user) localStorage.setItem('pp_username', user);
         localStorage.setItem('pp_mode', mode);
         settingsMenu.style.display = 'none';
       };
 
-      // Points & library from storage
-      let points = parseInt(localStorage.getItem('pp_points')||'0',10);
+      // Points & library
+      let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
       ptsElem.textContent = points;
-      let myLib = JSON.parse(localStorage.getItem('pp_lib')||'[]');
+      let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
 
-      // Pokémon data
-      const rarities=['Common','Uncommon','Rare','Epic','Legendary'];
-      const namesList=[/*100 names...*/];
-      const pokemonList = namesList.map((n,i)=>({ name:n, id:i+1, rarity: rarities[Math.floor(Math.random()*rarities.length)] }));
+      // Data
+      const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
+      const namesList = [
+        'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard',
+        'Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree',
+        'Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate',
+        'Spearow','Fearow','Ekans','Arbok','Pikachu','Raichu','Sandshrew','Sandslash',
+        'Nidoran♀','Nidorina','Nidoqueen','Nidoran♂','Nidorino','Nidoking','Clefairy',
+        'Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat',
+        'Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett',
+        'Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape',
+        'Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra',
+        'Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel',
+        'Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash',
+        'Slowpoke','Slowbro','Magnemite','Magneton','Farfetch’d','Doduo','Dodrio',
+        'Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter',
+        'Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
+      ];
+      const pokemonList = namesList.map((n,i)=>({ name:n,id:i+1,rarity:rarities[Math.floor(Math.random()*rarities.length)] }));
 
-      // Interaction handlers
+      // Open pack animation
       function openPack() {
-        // Animation
         packTop.style.transition = 'transform 0.6s ease-out';
-        packTop.style.transform = 'rotateY(-80deg) translateX(200px) scale(0.5)';
-        setTimeout(revealPokemon,600);
+        const dir = 1; // always right
+        packTop.style.transform = `rotateY(${-80 * dir}deg) translateX(${200 * dir}px) scale(0.5)`;
+        setTimeout(revealPokemon, 600);
       }
+
       function revealPokemon() {
-        const c = pokemonList[Math.floor(Math.random()*pokemonList.length)];
+        const c = pokemonList[Math.floor(Math.random() * pokemonList.length)];
         cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
         cardLbl.textContent = `${c.name}\n${c.rarity}`;
+        cardLbl.classList.remove('hidden');
         cardC.style.display = 'flex'; packC.style.display = 'none';
-        if(myLib.find(p=>p.id===c.id)) { points++; ptsElem.textContent = points; localStorage.setItem('pp_points',points); }
-        myLib = myLib.filter(p=>p.id!==c.id); myLib.push(c);
+        if (myLib.some(p=>p.id===c.id)) {
+          points++; ptsElem.textContent = points; localStorage.setItem('pp_points',points);
+          myLib = myLib.filter(p=>p.id!==c.id);
+        }
+        myLib.push(c);
         localStorage.setItem('pp_lib', JSON.stringify(myLib));
       }
 
-      settingsMenu.style.display = 'none';
-      if(!user) settingsMenu.style.display = 'block';
+      // Event binding based on mode
+      packC.addEventListener('click', () => { if (mode==='Mouse') openPack(); });
+      packC.addEventListener('touchend', () => { if (mode==='Touch') openPack(); });
+      openAgain.onclick = () => { cardLbl.classList.add('hidden'); packC.style.display='block'; cardC.style.display='none'; packTop.style.transform='rotateY(0)'; };
 
-      // Mode-based open
-      packC.addEventListener('click', () => { if(mode==='Mouse') openPack(); });
-      packC.addEventListener('touchend', () => { if(mode==='Touch') openPack(); });
-      openAgain.onclick = () => { cardC.style.display='none'; packC.style.display='block'; packTop.style.transform='rotateY(0)'; };
-
-      // Library and search
+      // Library & search
       window.showLibrary = () => { packC.style.display='none'; cardC.style.display='none'; libC.style.display='block'; renderLibrary(); };
       window.backToPack = () => { libC.style.display='none'; packC.style.display='block'; };
       window.filterLibrary = q => { libC.querySelectorAll('.lib-card').forEach(c=>{ const txt=c.querySelector('.lib-label').innerText.toLowerCase(); c.style.display = txt.includes(q.toLowerCase())?'flex':'none'; }); };
+
       function renderLibrary() {
         libC.querySelectorAll('h2,.lib-card').forEach(e=>e.remove());
         const h2 = document.createElement('h2'); h2.innerText='Your Pokémon'; libC.appendChild(h2);
-        const grid=document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
-        myLib.forEach(p=>{ const d=document.createElement('div'); d.className='lib-card'; const i=document.createElement('img'); i.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`; const lbl=document.createElement('div'); lbl.className='lib-label '+p.rarity; lbl.innerText=`${p.name}
-${p.rarity}`; d.append(i,lbl); grid.append(d);} ); libC.appendChild(grid);
+        const grid = document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
+        myLib.forEach(p=>{
+          const d = document.createElement('div'); d.className='lib-card';
+          const i = document.createElement('img'); i.src=`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+          const lbl = document.createElement('div'); lbl.className='lib-label '+p.rarity; lbl.innerText=`${p.name}\n${p.rarity}`;
+          d.append(i,lbl); grid.append(d);
+        }); libC.appendChild(grid);
       }
     });
   </script>
