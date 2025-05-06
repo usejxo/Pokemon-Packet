@@ -12,32 +12,32 @@
       background: #f2f2f2; font-family: sans-serif; height: 100vh;
     }
     h1 { margin: 16px; }
+    #username-display { font-size: 14px; margin-bottom: 8px; }
     #pack-container, #card-container, #library-container {
       width: 300px; height: 400px; position: relative;
       background: white; border-radius: 12px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
       overflow: hidden;
     }
-    #pack-container.swiping::before {
-      content: ''; position: absolute; top: 0; left: 0;
-      height: 100%; background: rgba(255,0,0,0.2);
-      width: var(--swipe-x, 0);
-    }
+    /* Perspective for 3D tilt */
+    #pack-container { perspective: 800px; }
     #pack-top {
       position: absolute; top: 0; width: 100%; height: 40%;
-      background: red; color: white; font-size: 20px;
-      display: flex; justify-content: center;
-      align-items: center; transform-origin: top;
-      transition: transform 0.6s ease-out; z-index: 2;
+      background: red; color: white; display: flex;
+      justify-content: center; align-items: center;
+      transform-origin: top; transition: transform 0.2s ease-out;
+      z-index: 2;
     }
     #pack-bottom {
       position: absolute; bottom: 0; width: 100%; height: 60%;
-      background: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png') center/contain no-repeat;
+      background: url('assets/images/pack/bottom.png') center/contain no-repeat;
       background-color: white;
     }
     #pokemon-card { width: 80%; margin-bottom: 12px; }
+    #points {
+      display: flex; align-items: center; margin-bottom: 8px;
+    }
+    #points img { width: 16px; margin-right: 4px; }
     .hidden { display: none !important; }
     button {
       padding: 8px 12px; margin: 8px;
@@ -50,10 +50,17 @@
       position: absolute; bottom: 0; width: 100%;
       display: flex; justify-content: space-between; padding: 8px;
     }
-    #back-button { position: absolute; top: 8px; left: 8px; }
+    #back-button {
+      position: absolute; top: 8px; left: 8px;
+    }
+    /* Expanded library size */
     #library-container {
-      padding-top: 40px; flex-wrap: wrap; overflow-y: auto;
-      display: none;
+      display: none; width: 320px; height: 420px;
+      padding-top: 40px; background: white;
+    }
+    #search-bar {
+      width: 80%; padding: 4px; margin: 8px;
+      border: 1px solid #ccc; border-radius: 4px;
     }
     .lib-card {
       width: 80px; margin: 4px;
@@ -61,41 +68,65 @@
     }
     .lib-card img { width: 100%; }
     .lib-label {
-      font-size: 10px; text-align: center; white-space: pre-line;
+      font-size: 10px; text-align: center;
+      white-space: pre-line;
     }
+    /* Rarity colors */
     .Common   { color: gray; }
     .Uncommon { color: green; }
     .Rare     { color: blue; }
     .Epic     { color: purple; }
     .Legendary{ color: gold; }
-    #search-bar {
-      width: 80%; padding: 4px; margin: 8px;
-      border: 1px solid #ccc; border-radius: 4px;
-    }
   </style>
 </head>
 <body>
   <h1>Pokémon Packet</h1>
+  <div id="username-display"></div>
+
   <div id="corner-buttons">
     <button onclick="showLibrary()">Library</button>
     <button onclick="alert('Battle coming soon!')">Battle</button>
   </div>
+
   <div id="pack-container">
     <div id="pack-top">Poké Pack</div>
     <div id="pack-bottom"></div>
   </div>
+
   <div id="card-container" class="hidden">
     <img id="pokemon-card" src="" alt="Pokemon Card">
+    <div id="points">
+      <img src="assets/images/points/coin.png" alt="Points">
+      <span id="points-count">0</span>
+    </div>
     <button id="open-again">Open Another</button>
   </div>
+
   <div id="library-container">
     <button id="back-button" onclick="backToPack()">Back</button>
     <input id="search-bar" type="text" placeholder="Search Pokémon..." oninput="filterLibrary(this.value)">
   </div>
+
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      // Prompt for username once
+      let user = localStorage.getItem('pp_username');
+      if (!user) {
+        user = prompt('Enter your username:');
+        localStorage.setItem('pp_username', user);
+      }
+      document.getElementById('username-display').innerText = 'User: ' + user;
+
+      // Load points and library
+      let points = parseInt(localStorage.getItem('pp_points') || '0', 10);
+      const ptsElem = document.getElementById('points-count');
+      ptsElem.innerText = points;
+
+      let myLib = JSON.parse(localStorage.getItem('pp_lib') || '[]');
+
+      // Define Pokémon
       const rarities = ['Common','Uncommon','Rare','Epic','Legendary'];
-      const names = [
+      const namesList = [
         'Bulbasaur','Ivysaur','Venusaur','Charmander','Charmeleon','Charizard',
         'Squirtle','Wartortle','Blastoise','Caterpie','Metapod','Butterfree',
         'Weedle','Kakuna','Beedrill','Pidgey','Pidgeotto','Pidgeot','Rattata','Raticate',
@@ -103,85 +134,119 @@
         'Nidoran♀','Nidorina','Nidoqueen','Nidoran♂','Nidorino','Nidoking','Clefairy',
         'Clefable','Vulpix','Ninetales','Jigglypuff','Wigglytuff','Zubat','Golbat',
         'Oddish','Gloom','Vileplume','Paras','Parasect','Venonat','Venomoth','Diglett',
-        'Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape','Growlithe',
-        'Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra','Alakazam',
-        'Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel','Tentacool',
-        'Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash','Slowpoke','Slowbro',
-        'Magnemite','Magneton','Farfetch’d','Doduo','Dodrio','Seel','Dewgong','Grimer',
-        'Muk','Shellder','Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno',
-        'Krabby','Kingler','Voltorb'
+        'Dugtrio','Meowth','Persian','Psyduck','Golduck','Mankey','Primeape',
+        'Growlithe','Arcanine','Poliwag','Poliwhirl','Poliwrath','Abra','Kadabra',
+        'Alakazam','Machop','Machoke','Machamp','Bellsprout','Weepinbell','Victreebel',
+        'Tentacool','Tentacruel','Geodude','Graveler','Golem','Ponyta','Rapidash',
+        'Slowpoke','Slowbro','Magnemite','Magneton','Farfetch’d','Doduo','Dodrio',
+        'Seel','Dewgong','Grimer','Muk','Shellder','Cloyster','Gastly','Haunter',
+        'Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
       ];
-      const pokemonList = names.map((n,i) => ({
-        name: n, id: i+1,
-        rarity: rarities[Math.floor(Math.random()*rarities.length)]
+      const pokemonList = namesList.map((n,i) => ({
+        name: n,
+        id: i+1,
+        rarity: rarities[Math.floor(Math.random() * rarities.length)]
       }));
+
+      // Element refs
       const packTop = document.getElementById('pack-top');
       const packC = document.getElementById('pack-container');
       const cardC = document.getElementById('card-container');
       const libC  = document.getElementById('library-container');
       const cardImg = document.getElementById('pokemon-card');
       const openAgain = document.getElementById('open-again');
-      let startX=0, myLib=[];
 
-      function handleStart(x){ startX=x; packC.classList.add('swiping'); }
-      function handleMove(x){ const d=Math.max(0,x-startX); packC.style.setProperty('--swipe-x', d+'px'); }
-      function handleEnd(x){
-        packC.classList.remove('swiping');
-        packC.style.setProperty('--swipe-x','0px');
-        if(Math.abs(x-startX)>80){
-          packTop.style.transform='translateY(-150%) scaleY(0)';
-          setTimeout(reveal,500);
+      // Swipe logic
+      let startX = 0;
+      function handleStart(x) {
+        startX = x;
+      }
+      function handleMove(x) {
+        const w = packC.clientWidth;
+        const diff = x - startX;
+        const pct = Math.min(Math.max(diff / w, 0), 1);
+        const angle = pct * 60;
+        packTop.style.transform = `rotateX(${angle}deg)`;
+      }
+      function handleEnd(x) {
+        const diff = Math.abs(x - startX);
+        if (diff > 80) {
+          packTop.style.transition = 'transform 0.6s ease-out';
+          packTop.style.transform = 'rotateX(80deg) translateY(-200%) scale(0.5)';
+          setTimeout(revealPokemon, 600);
+        } else {
+          packTop.style.transition = '';
+          packTop.style.transform = 'rotateX(0)';
         }
       }
-      ['touchstart','mousedown'].forEach(e=>packC.addEventListener(e, ev=>handleStart(ev.touches?ev.touches[0].clientX:ev.clientX)));
-      ['touchmove','mousemove'].forEach(e=>packC.addEventListener(e, ev=>{ if(startX) handleMove(ev.touches?ev.touches[0].clientX:ev.clientX); }));
-      ['touchend','mouseup'].forEach(e=>packC.addEventListener(e, ev=>{ handleEnd(ev.changedTouches?ev.changedTouches[0].clientX:ev.clientX); startX=0; }));
+      ['touchstart','mousedown'].forEach(evt => packC.addEventListener(evt, e => handleStart(e.touches ? e.touches[0].clientX : e.clientX)));
+      ['touchmove','mousemove'].forEach(evt => packC.addEventListener(evt, e => handleMove(e.touches ? e.touches[0].clientX : e.clientX)));
+      ['touchend','mouseup'].forEach(evt => packC.addEventListener(evt, e => handleEnd(e.changedTouches ? e.changedTouches[0].clientX : e.clientX)));
 
-      function reveal(){
-        const c = pokemonList[Math.floor(Math.random()*pokemonList.length)];
-        cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
-        cardImg.alt = c.name;
-        myLib.push(c);
+      function revealPokemon() {
+        const choice = pokemonList[Math.floor(Math.random() * pokemonList.length)];
+        cardImg.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${choice.id}.png`;
+        cardImg.alt = choice.name;
+        // Color pack-top by rarity
+        packTop.style.background = {
+          Legendary: 'orange', Epic: 'purple',
+          Rare: 'blue', Uncommon: 'green', Common: 'gray'
+        }[choice.rarity];
+        // Award points if duplicate
+        if (myLib.some(p => p.id === choice.id)) {
+          points += 10;
+          localStorage.setItem('pp_points', points);
+          ptsElem.innerText = points;
+        }
+        myLib.push(choice);
+        localStorage.setItem('pp_lib', JSON.stringify(myLib));
         packC.classList.add('hidden');
         cardC.classList.remove('hidden');
       }
-      openAgain.onclick = ()=>{
-        packTop.style.transform='translateY(0) scaleY(1)';
+
+      openAgain.onclick = () => {
+        packTop.style.transition = '';
+        packTop.style.transform = 'rotateX(0)';
         cardC.classList.add('hidden');
         packC.classList.remove('hidden');
       };
 
-      window.showLibrary = ()=>{
-        cardC.classList.add('hidden');
+      window.showLibrary = () => {
         packC.classList.add('hidden');
-        libC.style.display='flex';
+        cardC.classList.add('hidden');
+        libC.style.display = 'block';
         renderLibrary();
       };
-      window.backToPack = ()=>{
-        libC.style.display='none';
+
+      window.backToPack = () => {
+        libC.style.display = 'none';
         packC.classList.remove('hidden');
       };
-      window.filterLibrary = q=>{
-        libC.querySelectorAll('.lib-card').forEach(card=>{
+
+      window.filterLibrary = q => {
+        document.querySelectorAll('.lib-card').forEach(card => {
           const txt = card.querySelector('.lib-label').innerText.toLowerCase();
           card.style.display = txt.includes(q.toLowerCase()) ? 'flex' : 'none';
         });
       };
 
-      function renderLibrary(){
-        libC.querySelectorAll('.lib-card, h2').forEach(e=>e.remove());
-        const h = document.createElement('h2'); h.innerText='Your Pokémon';
-        libC.appendChild(h);
+      function renderLibrary() {
+        libC.querySelectorAll('h2, .lib-card').forEach(e => e.remove());
+        const h2 = document.createElement('h2');
+        h2.innerText = 'Your Pokémon';
+        libC.appendChild(h2);
         const grid = document.createElement('div');
-        grid.style.display='flex'; grid.style.flexWrap='wrap';
-        myLib.forEach(p=>{
-          const d = document.createElement('div'); d.className='lib-card';
+        grid.style.display = 'flex';
+        grid.style.flexWrap = 'wrap';
+        myLib.forEach(p => {
+          const d = document.createElement('div');
+          d.className = 'lib-card';
           const img = document.createElement('img');
           img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
           const lbl = document.createElement('div');
-          lbl.className = 'lib-label '+p.rarity;
+          lbl.className = 'lib-label ' + p.rarity;
           lbl.innerText = `${p.name}\n${p.rarity}`;
-          d.append(img,lbl);
+          d.append(img, lbl);
           grid.append(d);
         });
         libC.appendChild(grid);
