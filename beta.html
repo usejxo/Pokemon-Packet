@@ -91,8 +91,14 @@
     </div>
     <!-- Settings Menu -->
     <div id="settings-menu" style="display:none; position:absolute; top:40px; right:10px; width:200px; background:white; border:1px solid #ccc; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.2); padding:16px; z-index:5;">
-      <label>Mode:<br><select id="mode-select"><option>Touch</option><option>Mouse</option></select></label><br>
-      <label>Username:<br><input id="username-input" type="text"></label><br>
+      <label>Mode:<br>
+        <select id="mode-select">
+          <option>Touch</option><option>Mouse</option>
+        </select>
+      </label><br>
+      <label>Username:<br>
+        <input id="username-input" type="text">
+      </label><br>
       <small>You can change this later in settings</small><br><br>
       <button id="save-settings">Save</button>
     </div>
@@ -121,14 +127,14 @@
       const firstPopup = document.getElementById('first-time-popup');
       const fuInput    = document.getElementById('first-username');
       const fmSelect   = document.getElementById('first-mode');
-      function saveFirstTime() {
+      window.saveFirstTime = () => {
         const u = fuInput.value.trim();
         if (!u) return;
         localStorage.setItem('pp_username', u);
         localStorage.setItem('pp_mode', fmSelect.value);
         firstPopup.style.display = 'none';
         initApp();
-      }
+      };
       if (!localStorage.getItem('pp_username')) {
         firstPopup.style.display = 'flex';
       } else {
@@ -157,7 +163,9 @@
         let user = localStorage.getItem('pp_username');
         modeSelect.value    = mode;
         usernameInput.value = user;
-        settingsBtn.onclick = () => settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
+        settingsBtn.onclick = () => {
+          settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
+        };
         saveSettings.onclick = () => {
           mode = modeSelect.value;
           user = usernameInput.value.trim();
@@ -188,7 +196,10 @@
           'Magnemite','Magneton','Farfetch’d','Doduo','Dodrio','Seel','Dewgong','Grimer','Muk','Shellder',
           'Cloyster','Gastly','Haunter','Gengar','Onix','Drowzee','Hypno','Krabby','Kingler','Voltorb'
         ];
-        const pokemonList = namesList.map((n,i) => ({ name:n, id:i+1, rarity: rarities[Math.floor(Math.random()*rarities.length)] }));
+        const pokemonList = namesList.map((n,i) => ({
+          name: n, id: i+1,
+          rarity: rarities[Math.floor(Math.random()*rarities.length)]
+        }));
 
         // Open pack animation
         function openPack() {
@@ -202,9 +213,11 @@
           cardImg.src   = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${c.id}.png`;
           cardLbl.textContent = `${c.name}\n${c.rarity}`;
           cardLbl.classList.remove('hidden');
-          cardC.style.display = 'flex'; packC.style.display = 'none';
+          cardC.style.display = 'flex';
+          packC.style.display = 'none';
           if (myLib.some(p => p.id === c.id)) {
-            points++; ptsElem.textContent = points; localStorage.setItem('pp_points', points);
+            points++; ptsElem.textContent = points;
+            localStorage.setItem('pp_points', points);
             myLib = myLib.filter(p => p.id !== c.id);
           }
           myLib.push(c);
@@ -215,25 +228,51 @@
         packC.addEventListener('touchend', () => { if (mode==='Touch') openPack(); });
         openAgain.onclick = () => {
           cardLbl.classList.add('hidden');
-          packC.style.display = 'block'; cardC.style.display = 'none';
+          packC.style.display = 'block';
+          cardC.style.display = 'none';
           packTop.style.transform = 'rotateY(0)';
         };
 
         // Library & search
-        window.showLibrary = () => { packC.style.display='none'; cardC.style.display='none'; libC.style.display='block'; renderLibrary(); };
-        window.backToPack = () => { libC.style.display='none'; packC.style.display='block'; };
-        window.filterLibrary = q => { libC.querySelectorAll('.lib-card').forEach(c=>{ const txt=c.querySelector('.lib-label').innerText.toLowerCase(); c.style.display = txt.includes(q.toLowerCase())?'flex':'none'; }); };
+        window.showLibrary = () => {
+          packC.style.display = 'none';
+          cardC.style.display = 'none';
+          libC.style.display  = 'block';
+          renderLibrary();
+        };
+        window.backToPack = () => {
+          libC.style.display  = 'none';
+          packC.style.display = 'block';
+          packTop.style.transform = 'rotateY(0)';
+        };
+        window.filterLibrary = q => {
+          libC.querySelectorAll('.lib-card').forEach(c => {
+            const txt = c.querySelector('.lib-label').innerText.toLowerCase();
+            c.style.display = txt.includes(q.toLowerCase()) ? 'flex' : 'none';
+          });
+        };
 
         function renderLibrary() {
-          libC.querySelectorAll('h2, .lib-card').forEach(e=>e.remove());
-          const h2 = document.createElement('h2'); h2.innerText='Your Pokémon'; libC.appendChild(h2);
-          const grid = document.createElement('div'); grid.style.display='flex'; grid.style.flexWrap='wrap';
+          libC.querySelectorAll('h2, .lib-card').forEach(e => e.remove());
+          const h2 = document.createElement('h2');
+          h2.innerText = 'Your Pokémon';
+          libC.appendChild(h2);
+
+          const grid = document.createElement('div');
+          grid.style.display = 'flex';
+          grid.style.flexWrap = 'wrap';
           myLib.forEach(p => {
-            const d = document.createElement('div'); d.className='lib-card';
-            const i = document.createElement('img'); i.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
-            const lbl = document.createElement('div'); lbl.className = 'lib-label ' + p.rarity; lbl.innerText = `${p.name}\n${p.rarity}`;
-            d.append(i, lbl); grid.append(d);
-          }); libC.appendChild(grid);
+            const d = document.createElement('div');
+            d.className = 'lib-card';
+            const i = document.createElement('img');
+            i.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${p.id}.png`;
+            const lbl = document.createElement('div');
+            lbl.className = 'lib-label ' + p.rarity;
+            lbl.innerText = `${p.name}\n${p.rarity}`;
+            d.append(i, lbl);
+            grid.append(d);
+          });
+          libC.appendChild(grid);
         }
       }
     });
