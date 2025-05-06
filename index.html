@@ -113,6 +113,11 @@
       justify-content: space-between;
       padding: 8px;
     }
+    #back-button {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+    }
   </style>
 </head>
 <body>
@@ -131,7 +136,9 @@
     <button id="open-again">Open Another</button>
   </div>
 
-  <div id="library-container" class="hidden"></div>
+  <div id="library-container" class="hidden">
+    <button id="back-button" onclick="backToPack()">Back</button>
+  </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -205,8 +212,13 @@
         libraryContainer.classList.remove('hidden');
       }
 
+      function backToPack() {
+        libraryContainer.classList.add('hidden');
+        packContainer.classList.remove('hidden');
+      }
+
       function renderLibrary() {
-        libraryContainer.innerHTML = '<h2>Your Pokémon</h2>';
+        libraryContainer.innerHTML = '<button id="back-button" onclick="backToPack()">Back</button><h2>Your Pokémon</h2>';
         const grid = document.createElement('div');
         grid.style.display = 'flex';
         grid.style.flexWrap = 'wrap';
@@ -230,6 +242,7 @@
       }
 
       window.showLibrary = showLibrary;
+      window.backToPack = backToPack;
     });
   </script>
 </body>
